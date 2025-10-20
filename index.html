@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Rush - Bike Racing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+
+        body {
+            font-family: 'Arial Black', Arial, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(180deg, #1a0033 0%, #330066 50%, #4d0099 100%);
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 24px;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            pointer-events: none;
+        }
+
+        #speed {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            color: #00ffff;
+            font-size: 20px;
+            text-shadow: 0 0 10px #00ffff;
+            pointer-events: none;
+        }
+
+        #boostBar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            pointer-events: none;
+        }
+
+        #boostBarBg {
+            width: 100%;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ffff00;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        #boostBarFill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffff00, #ff6600);
+            transition: width 0.1s;
+            box-shadow: 0 0 20px #ffff00;
+        }
+
+        #boostText {
+            text-align: center;
+            color: #ffff00;
+            font-size: 14px;
+            margin-top: 5px;
+            text-shadow: 0 0 10px #ffff00;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+
+        .control-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            background: linear-gradient(135deg, #ff00ff, #00ffff);
+            color: #fff;
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.8);
+            transition: transform 0.1s, box-shadow 0.1s;
+            pointer-events: all;
+        }
+
+        .control-btn:active {
+            transform: scale(0.9);
+            box-shadow: 0 0 40px rgba(255, 0, 255, 1);
+        }
+
+        #boostBtn {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #ff6600, #ffff00);
+            font-size: 20px;
+            box-shadow: 0 0 30px rgba(255, 255, 0, 0.8);
+        }
+
+        #boostBtn:active {
+            box-shadow: 0 0 50px rgba(255, 255, 0, 1);
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            border: 3px solid #ff00ff;
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.8);
+            pointer-events: all;
+        }
+
+        #gameOver h2 {
+            color: #ff00ff;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff00ff;
+        }
+
+        #gameOver p {
+            color: #00ffff;
+            font-size: 24px;
+            margin: 10px 0;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        #restartBtn {
+            margin-top: 20px;
+            padding: 15px 40px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #ff00ff, #00ffff);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.8);
+        }
+
+        #restartBtn:hover {
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            #score, #speed {
+                font-size: 18px;
+            }
+
+            #boostBar {
+                width: 150px;
+            }
+
+            .control-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 24px;
+            }
+
+            #boostBtn {
+                width: 90px;
+                height: 90px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div id="score">Score: 0</div>
+            <div id="speed">Speed: 0 km/h</div>
+            <div id="boostBar">
+                <div id="boostBarBg">
+                    <div id="boostBarFill" style="width: 100%"></div>
+                </div>
+                <div id="boostText">BOOST READY</div>
+            </div>
+            <div id="controls">
+                <div class="control-btn" id="leftBtn">◄</div>
+                <div class="control-btn" id="boostBtn">BOOST</div>
+                <div class="control-btn" id="rightBtn">►</div>
+            </div>
+            <div id="gameOver">
+                <h2>GAME OVER!</h2>
+                <p id="finalScore">Score: 0</p>
+                <p id="finalDistance">Distance: 0m</p>
+                <button id="restartBtn">RESTART</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let gameState = {
+            running: true,
+            score: 0,
+            distance: 0,
+            speed: 200,
+            baseSpeed: 200,
+            maxSpeed: 500,
+            boost: 100,
+            boostActive: false,
+            playerX: canvas.width / 2,
+            playerY: canvas.height - 150,
+            playerWidth: 50,
+            playerHeight: 95,
+            roadOffset: 0,
+            lanes: 3,
+            laneWidth: 0,
+            obstacles: [],
+            particles: []
+        };
+
+        gameState.laneWidth = Math.min(canvas.width * 0.8, 600) / gameState.lanes;
+
+        const keys = {
+            left: false,
+            right: false,
+            boost: false
+        };
+
+        // Touch controls
+        document.getElementById('leftBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys.left = true;
+        });
+        document.getElementById('leftBtn').addEventListener('touchend', () => keys.left = false);
+
+        document.getElementById('rightBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys.right = true;
+        });
+        document.getElementById('rightBtn').addEventListener('touchend', () => keys.right = false);
+
+        document.getElementById('boostBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys.boost = true;
+        });
+        document.getElementById('boostBtn').addEventListener('touchend', () => keys.boost = false);
+
+        // Click controls for desktop
+        document.getElementById('leftBtn').addEventListener('mousedown', () => keys.left = true);
+        document.getElementById('leftBtn').addEventListener('mouseup', () => keys.left = false);
+        document.getElementById('rightBtn').addEventListener('mousedown', () => keys.right = true);
+        document.getElementById('rightBtn').addEventListener('mouseup', () => keys.right = false);
+        document.getElementById('boostBtn').addEventListener('mousedown', () => keys.boost = true);
+        document.getElementById('boostBtn').addEventListener('mouseup', () => keys.boost = false);
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+            if (e.key === ' ' || e.key === 'Shift') keys.boost = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+            if (e.key === ' ' || e.key === 'Shift') keys.boost = false;
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', restartGame);
+
+        function drawRealisticBike(x, y, colors, scale = 1, isPlayer = false) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, 50, 25, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Rear wheel
+            ctx.fillStyle = '#2a2a2a';
+            ctx.beginPath();
+            ctx.arc(0, 38, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#1a1a1a';
+            ctx.beginPath();
+            ctx.arc(0, 38, 9, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#444';
+            ctx.beginPath();
+            ctx.arc(0, 38, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Rear fender
+            ctx.fillStyle = colors.bike;
+            ctx.beginPath();
+            ctx.ellipse(0, 32, 16, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Seat
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(-14, 18, 28, 16);
+            ctx.beginPath();
+            ctx.ellipse(0, 18, 14, 7, 0, 0, Math.PI, true);
+            ctx.fill();
+            
+            // Rider's lower body
+            ctx.fillStyle = '#3a3a3a';
+            ctx.fillRect(-12, 10, 24, 20);
+            
+            // Safety vest body
+            ctx.fillStyle = colors.vest;
+            ctx.fillRect(-13, 5, 26, 18);
+            
+            // Safety vest stripes
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-13, 8, 26, 3);
+            ctx.fillRect(-13, 17, 26, 3);
+            
+            // Arms
+            ctx.fillStyle = '#3a3a3a';
+            ctx.fillRect(-20, 8, 7, 16);
+            ctx.fillRect(13, 8, 7, 16);
+            
+            // Vest on arms
+            ctx.fillStyle = colors.vest;
+            ctx.fillRect(-20, 8, 7, 10);
+            ctx.fillRect(13, 8, 7, 10);
+            
+            // Hands
+            ctx.fillStyle = '#5a4a4a';
+            ctx.beginPath();
+            ctx.arc(-23, 24, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(23, 24, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Helmet
+            ctx.fillStyle = colors.helmet;
+            if (isPlayer && gameState.boostActive) {
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = colors.helmet;
+            }
+            ctx.beginPath();
+            ctx.arc(0, 5, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Visor
+            ctx.fillStyle = 'rgba(30, 30, 50, 0.8)';
+            ctx.beginPath();
+            ctx.ellipse(0, 6, 8, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Bike tank/body
+            ctx.fillStyle = colors.bike;
+            if (isPlayer && gameState.boostActive) {
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = colors.bike;
+            }
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 17, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Tank details
+            ctx.fillStyle = colors.accent;
+            ctx.fillRect(-10, 0, 5, 15);
+            ctx.fillRect(5, 0, 5, 15);
+            
+            // Handlebars
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(-26, 20);
+            ctx.lineTo(-18, 18);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(26, 20);
+            ctx.lineTo(18, 18);
+            ctx.stroke();
+            
+            // Handlebar grips
+            ctx.fillStyle = colors.accent;
+            ctx.fillRect(-28, 18, 4, 4);
+            ctx.fillRect(24, 18, 4, 4);
+            
+            // Front fairing
+            ctx.fillStyle = colors.bike;
+            ctx.beginPath();
+            ctx.moveTo(-18, -2);
+            ctx.lineTo(0, -15);
+            ctx.lineTo(18, -2);
+            ctx.lineTo(14, 8);
+            ctx.lineTo(-14, 8);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Windscreen
+            ctx.fillStyle = 'rgba(150, 180, 200, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(-12, 0);
+            ctx.lineTo(0, -10);
+            ctx.lineTo(12, 0);
+            ctx.lineTo(0, 5);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Headlight
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(0, -12, 6, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Front wheel
+            ctx.fillStyle = '#2a2a2a';
+            ctx.beginPath();
+            ctx.arc(0, -20, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#1a1a1a';
+            ctx.beginPath();
+            ctx.arc(0, -20, 9, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#444';
+            ctx.beginPath();
+            ctx.arc(0, -20, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Wheel spokes
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            const rotation = (Date.now() / 30) % (Math.PI * 2);
+            for (let i = 0; i < 4; i++) {
+                const angle = rotation + (i * Math.PI / 2);
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(angle) * 2, -20 + Math.sin(angle) * 2);
+                ctx.lineTo(Math.cos(angle) * 8, -20 + Math.sin(angle) * 8);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(angle) * 2, 38 + Math.sin(angle) * 2);
+                ctx.lineTo(Math.cos(angle) * 8, 38 + Math.sin(angle) * 8);
+                ctx.stroke();
+            }
+            
+            // Tail lights
+            ctx.fillStyle = '#ff0000';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(-12, 45, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(12, 45, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            ctx.restore();
+        }
+
+        function createObstacle() {
+            const lane = Math.floor(Math.random() * gameState.lanes);
+            const roadStart = (canvas.width - gameState.laneWidth * gameState.lanes) / 2;
+            const colorSchemes = [
+                { bike: '#5a6c7d', accent: '#ffffff', vest: '#e6b800', helmet: '#d32f2f' },
+                { bike: '#3d5a80', accent: '#98c1d9', vest: '#ffeb3b', helmet: '#2a2a2a' },
+                { bike: '#2d3142', accent: '#ef8354', vest: '#d4e157', helmet: '#ffffff' },
+                { bike: '#1a535c', accent: '#4ecdc4', vest: '#ffe66d', helmet: '#ff6b6b' },
+                { bike: '#6a4c93', accent: '#c9ada7', vest: '#ffd23f', helmet: '#1e1e1e' }
+            ];
+            const colors = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
+            
+            return {
+                x: roadStart + lane * gameState.laneWidth + gameState.laneWidth / 2,
+                y: -100,
+                width: 50,
+                height: 95,
+                colors: colors
+            };
+        }
+
+        function createParticle(x, y) {
+            return {
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 5,
+                vy: Math.random() * 3 + 1,
+                size: Math.random() * 5 + 2,
+                color: `hsl(${Math.random() * 60 + 180}, 100%, 60%)`,
+                life: 1
+            };
+        }
+
+        function drawRoad() {
+            const roadStart = (canvas.width - gameState.laneWidth * gameState.lanes) / 2;
+            const roadWidth = gameState.laneWidth * gameState.lanes;
+
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(roadStart, 0, roadWidth, canvas.height);
+
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([20, 15]);
+
+            for (let i = 1; i < gameState.lanes; i++) {
+                ctx.beginPath();
+                ctx.moveTo(roadStart + i * gameState.laneWidth, 0);
+                ctx.lineTo(roadStart + i * gameState.laneWidth, canvas.height);
+                ctx.stroke();
+            }
+
+            ctx.setLineDash([]);
+
+            const gradient1 = ctx.createLinearGradient(roadStart - 20, 0, roadStart + 20, 0);
+            gradient1.addColorStop(0, 'transparent');
+            gradient1.addColorStop(1, '#ff00ff');
+            ctx.fillStyle = gradient1;
+            ctx.fillRect(roadStart - 20, 0, 20, canvas.height);
+
+            const gradient2 = ctx.createLinearGradient(roadStart + roadWidth, 0, roadStart + roadWidth + 20, 0);
+            gradient2.addColorStop(0, '#ff00ff');
+            gradient2.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient2;
+            ctx.fillRect(roadStart + roadWidth, 0, 20, canvas.height);
+        }
+
+        function drawPlayer() {
+            const playerColors = {
+                bike: '#00e5ff',
+                accent: '#ff00ff',
+                vest: '#ffeb00',
+                helmet: '#ff0080'
+            };
+            drawRealisticBike(gameState.playerX, gameState.playerY, playerColors, 1, true);
+        }
+
+        function drawObstacles() {
+            gameState.obstacles.forEach(obs => {
+                drawRealisticBike(obs.x, obs.y, obs.colors, 0.9, false);
+            });
+        }
+
+        function drawParticles() {
+            gameState.particles.forEach((p) => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function updateGame(deltaTime) {
+            if (!gameState.running) return;
+
+            const moveSpeed = 8;
+            const roadStart = (canvas.width - gameState.laneWidth * gameState.lanes) / 2;
+            const roadEnd = roadStart + gameState.laneWidth * gameState.lanes;
+
+            if (keys.left) {
+                gameState.playerX -= moveSpeed;
+                if (gameState.playerX < roadStart + gameState.playerWidth / 2) {
+                    gameState.playerX = roadStart + gameState.playerWidth / 2;
+                }
+            }
+            if (keys.right) {
+                gameState.playerX += moveSpeed;
+                if (gameState.playerX > roadEnd - gameState.playerWidth / 2) {
+                    gameState.playerX = roadEnd - gameState.playerWidth / 2;
+                }
+            }
+
+            if (keys.boost && gameState.boost > 0 && !gameState.boostActive) {
+                gameState.boostActive = true;
+                gameState.speed = gameState.maxSpeed;
+            } else if (!keys.boost && gameState.boostActive) {
+                gameState.boostActive = false;
+                gameState.speed = gameState.baseSpeed;
+            }
+
+            if (gameState.boostActive && gameState.boost > 0) {
+                gameState.boost -= deltaTime * 50;
+                if (gameState.boost <= 0) {
+                    gameState.boost = 0;
+                    gameState.boostActive = false;
+                    gameState.speed = gameState.baseSpeed;
+                }
+                
+                if (Math.random() < 0.5) {
+                    gameState.particles.push(createParticle(gameState.playerX - 15, gameState.playerY + 45));
+                    gameState.particles.push(createParticle(gameState.playerX + 15, gameState.playerY + 45));
+                }
+            } else if (gameState.boost < 100) {
+                gameState.boost += deltaTime * 20;
+                if (gameState.boost > 100) gameState.boost = 100;
+            }
+
+            gameState.particles = gameState.particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy + gameState.speed * deltaTime;
+                p.life -= deltaTime * 2;
+                return p.life > 0;
+            });
+
+            gameState.obstacles.forEach(obs => {
+                obs.y += gameState.speed * deltaTime;
+            });
+
+            gameState.obstacles = gameState.obstacles.filter(obs => {
+                if (obs.y > canvas.height) {
+                    gameState.score += 10;
+                    return false;
+                }
+                return true;
+            });
+
+            if (Math.random() < 0.015) {
+                gameState.obstacles.push(createObstacle());
+            }
+
+            gameState.obstacles.forEach(obs => {
+                const dx = gameState.playerX - obs.x;
+                const dy = gameState.playerY - obs.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 45) {
+                    endGame();
+                }
+            });
+
+            gameState.distance += gameState.speed * deltaTime;
+            gameState.baseSpeed = Math.min(200 + gameState.distance / 50, 400);
+            if (!gameState.boostActive) {
+                gameState.speed = gameState.baseSpeed;
+            }
+
+            document.getElementById('score').textContent = `Score: ${Math.floor(gameState.score)}`;
+            document.getElementById('speed').textContent = `Speed: ${Math.floor(gameState.speed)} km/h`;
+            document.getElementById('boostBarFill').style.width = gameState.boost + '%';
+            document.getElementById('boostText').textContent = gameState.boostActive ? 'BOOSTING!' : 'BOOST';
+        }
+
+        function endGame() {
+            gameState.running = false;
+            document.getElementById('finalScore').textContent = `Score: ${Math.floor(gameState.score)}`;
+            document.getElementById('finalDistance').textContent = `Distance: ${Math.floor(gameState.distance)}m`;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        function restartGame() {
+            gameState = {
+                running: true,
+                score: 0,
+                distance: 0,
+                speed: 200,
+                baseSpeed: 200,
+                maxSpeed: 500,
+                boost: 100,
+                boostActive: false,
+                playerX: canvas.width / 2,
+                playerY: canvas.height - 150,
+                playerWidth: 50,
+                playerHeight: 95,
+                roadOffset: 0,
+                lanes: 3,
+                laneWidth: Math.min(canvas.width * 0.8, 600) / 3,
+                obstacles: [],
+                particles: []
+            };
+            document.getElementById('gameOver').style.display = 'none';
+        }
+
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawRoad();
+            drawParticles();
+            drawObstacles();
+            drawPlayer();
+            updateGame(deltaTime);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gameState.laneWidth = Math.min(canvas.width * 0.8, 600) / gameState.lanes;
+            gameState.playerX = canvas.width / 2;
+            gameState.playerY = canvas.height - 150;
+        });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
